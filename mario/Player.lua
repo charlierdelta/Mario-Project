@@ -47,7 +47,7 @@ function Player:init(map)
 
     -- position on top of map tiles
     self.y = map.tileHeight * ((map.mapHeight - 2) / 2) - self.height
-    self.x = map.tileWidth * 10
+    self.x = map.tileWidth * 2
 
     -- initialize all player animations
     self.animations = {
@@ -83,8 +83,8 @@ function Player:init(map)
     self.behaviors = {
         ['idle'] = function(dt)
             
-            -- add spacebar functionality to trigger jump state
-            if love.keyboard.wasPressed('space') then
+            -- add UP functionality to trigger jump state
+            if love.keyboard.wasPressed('up') then
                 self.dy = -JUMP_VELOCITY
                 self.state = 'jumping'
                 self.animation = self.animations['jumping']
@@ -109,7 +109,7 @@ function Player:init(map)
             
             -- keep track of input to switch movement while walking, or reset
             -- to idle if we're not moving
-            if love.keyboard.wasPressed('space') then
+            if love.keyboard.wasPressed('up') then
                 self.dy = -JUMP_VELOCITY
                 self.state = 'jumping'
                 self.animation = self.animations['jumping']
@@ -169,7 +169,7 @@ function Player:init(map)
 
             -- check for collisions moving left and right
             self:checkRightCollision()
-            self:checkLeftCollision()
+            self:checkLeftCollision()            
         end
     }
 end
@@ -179,8 +179,12 @@ function Player:update(dt)
     self.animation:update(dt)
     self.currentFrame = self.animation:getCurrentFrame()
     self.x = self.x + self.dx * dt
-
+    
+    self:checkVictory()
+        
     self:calculateJumps()
+    
+    self:checkDeath()
 
     -- apply velocity
     self.y = self.y + self.dy * dt
@@ -224,12 +228,13 @@ function Player:calculateJumps()
     end
 end
 
--- checks two tiles to our left to see if a collision occurred
+-- CHECKS two tiles to our left to see if a collision occurred
 function Player:checkLeftCollision()
     if self.dx < 0 then
         -- check if there's a tile directly beneath us
         if self.map:collides(self.map:tileAt(self.x - 1, self.y)) or
-            self.map:collides(self.map:tileAt(self.x - 1, self.y + self.height - 1)) then
+            self.map:collides(self.map:tileAt(self.x - 1, self.y + self.height - 1)) or
+            self.x - 1 < 0 then
             
             -- if so, reset velocity and position and change state
             self.dx = 0
@@ -243,12 +248,38 @@ function Player:checkRightCollision()
     if self.dx > 0 then
         -- check if there's a tile directly beneath us
         if self.map:collides(self.map:tileAt(self.x + self.width, self.y)) or
-            self.map:collides(self.map:tileAt(self.x + self.width, self.y + self.height - 1)) then
+            self.map:collides(self.map:tileAt(self.x + self.width, self.y + self.height - 1)) or
+            self.x + self.width > self.map.mapWidthPixels then
             
             -- if so, reset velocity and position and change state
             self.dx = 0
             self.x = (self.map:tileAt(self.x + self.width, self.y).x - 1) * self.map.tileWidth - self.width
         end
+    end
+end
+
+function Player:checkVictory()
+    local vTiles = {
+        FLAGPOLE_BOT, FLAGPOLE_MID, FLAGPOLE_TOP
+    }
+    
+    for _, v in ipairs(vTiles) do
+        if self.map:tileAt(self.x + self.width, self.y).id == v then
+            map:reset()
+        elseif self.map:tileAt(self.x - self.width, self.y).id == v then
+            map:reset()
+        elseif self.map:tileAt(self.x, self.y + self.height).id == v or
+                self.map:tileAt(self.x + self.width - 1, self.y + self.height).id == v then
+            map:reset()
+        end
+    end
+end
+
+function Player:checkDeath()
+    if self.y > 300 then
+        self.y = map.tileHeight * ((map.mapHeight - 2) / 2) - self.height
+        self.x = map.tileWidth * 2
+        map:setDeaths()
     end
 end
 
