@@ -34,7 +34,7 @@ map = Map()
 function love.load()
 
     -- sets up a different, better-looking retro font as our default
-    love.graphics.setFont(love.graphics.newFont('fonts/font.ttf', 8))
+    love.graphics.setFont(love.graphics.newFont('fonts/font.ttf', 16))
 
     -- sets up virtual screen resolution for an authentic retro feel
     push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
@@ -101,6 +101,8 @@ function love.draw()
 
     -- clear screen using Mario background blue
     love.graphics.clear(108/255, 140/255, 255/255, 255/255)
+    
+    displayStats()
 
     -- renders our map object onto the screen
     love.graphics.translate(math.floor(-map.camX + 0.5), math.floor(-map.camY + 0.5))
@@ -108,4 +110,9 @@ function love.draw()
 
     -- end virtual resolution
     push:apply('end')
+end
+
+function displayStats()
+    -- simple FPS display across all states
+    love.graphics.print('Stages: ' .. tostring(map:getStages()) .. '     Deaths: ' .. tostring(map:getDeaths()), 10, 10)
 end
