@@ -26,8 +26,23 @@ MUSHROOM_BOTTOM = 11
 JUMP_BLOCK = 5
 JUMP_BLOCK_HIT = 9
 
+-- FLAGPOLE
+FLAGPOLE_BOT = 16
+FLAGPOLE_MID = 12
+FLAGPOLE_TOP = 8
+
+-- FLAG
+FLAG_1 = 13
+FLAG_2 = 14
+FLAG_3 = 15
+
+
 -- a speed to multiply delta time to scroll map; smooth value
 local SCROLL_SPEED = 62
+
+-- initialize deaths and stages counters
+deaths = 0
+stages = 0
 
 -- constructor for our map object
 function Map:init()
@@ -38,7 +53,7 @@ function Map:init()
 
     self.tileWidth = 16
     self.tileHeight = 16
-    self.mapWidth = 30
+    self.mapWidth = 60
     self.mapHeight = 28
     self.tiles = {}
 
@@ -66,8 +81,14 @@ function Map:init()
     end
 
     -- begin generating the terrain using vertical scan lines
-    local x = 1
-    while x < self.mapWidth do
+    
+    for i = 1, 5 do
+        for y = self.mapHeight / 2, self.mapHeight do
+            self:setTile(i, y, TILE_BRICK)
+        end
+    end
+    local x = 5
+    while x < self.mapWidth - 10 do
         
         -- 2% chance to generate a cloud
         -- make sure we're 2 tiles from edge at least
@@ -131,9 +152,40 @@ function Map:init()
         else
             -- increment X so we skip two scanlines, creating a 2-tile gap
             x = x + 2
+        end  
+    end
+        
+    -- CREATE flagpole
+    for x = self.mapWidth - 7, self.mapWidth do
+        for y = self.mapHeight / 2, self.mapHeight do
+            self:setTile(x, y, TILE_BRICK)
+        end
+        if x == self.mapWidth - 2 then
+            self:setTile(x, self.mapHeight / 2 - 1, FLAGPOLE_BOT)
+            for n = 2, 6 do
+                self:setTile(x, self.mapHeight / 2 - n, FLAGPOLE_MID)
+            end
+            self:setTile(x, self.mapHeight / 2 - 7, FLAGPOLE_TOP)
+            self:setTile(x + 1, self.mapHeight / 2 - 7, FLAG_1)
         end
     end
-
+    
+    -- CREATE PYRAMID
+    local counter = 1
+    for x = self.mapWidth - 10, self.mapWidth - 7 do
+        for y = self.mapHeight / 2, self.mapHeight do
+            self:setTile(x, y, TILE_BRICK)
+        end       
+         
+        for n = 1, counter do
+            self:setTile(x, self.mapHeight / 2 - n, MUSHROOM_BOTTOM)
+            if n == counter then
+                self:setTile(x, self.mapHeight / 2 - counter, MUSHROOM_TOP)
+            end
+        end
+        counter = counter + 1
+    end
+    
     -- start the background music
     self.music:setLooping(true)
     self.music:play()
@@ -141,10 +193,11 @@ end
 
 -- return whether a given tile is collidable
 function Map:collides(tile)
-    -- define our collidable tiles
+    -- define our COLLIDABLE tiles
     local collidables = {
         TILE_BRICK, JUMP_BLOCK, JUMP_BLOCK_HIT,
-        MUSHROOM_TOP, MUSHROOM_BOTTOM
+        MUSHROOM_TOP, MUSHROOM_BOTTOM, FLAGPOLE_BOT,
+        FLAGPOLE_MID, FLAGPOLE_TOP
     }
 
     -- iterate and return true if our tile type matches
@@ -167,6 +220,7 @@ function Map:update(dt)
         math.min(self.mapWidthPixels - VIRTUAL_WIDTH, self.player.x)))
 end
 
+
 -- gets the tile type at a given pixel coordinate
 function Map:tileAt(x, y)
     return {
@@ -186,6 +240,29 @@ function Map:setTile(x, y, id)
     self.tiles[(y - 1) * self.mapWidth + x] = id
 end
 
+function Map:setDeaths()
+    deaths = deaths + 1
+end
+
+function Map:getDeaths()
+    return deaths
+end
+
+function Map:setStages()
+    stages = stages + 1
+end
+
+function Map:getStages()
+    return stages
+end
+
+function Map:reset()
+    self:setStages()
+    self.music:setLooping(false)
+    self.music:stop()
+    self:init()
+end
+
 -- renders our map to the screen, to be called by main's render
 function Map:render()
     for y = 1, self.mapHeight do
@@ -197,6 +274,5 @@ function Map:render()
             end
         end
     end
-
     self.player:render()
 end
